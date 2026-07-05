@@ -17,7 +17,7 @@ const PackagesSection = () => {
         setLoading(true);
         const { data, error } = await supabase
           .from("service_providers")
-          .select("id, name, name_ar, photo_url, package, avg_rating, provider_locations(*, areas(*)), categories(*)");
+          .select("id, name, name_ar, description, description_ar, photo_url, package, avg_rating, provider_locations(*, areas(*)), categories(*)");
         
         const completeProviders = data ? data.filter(isProviderComplete) : [];
 

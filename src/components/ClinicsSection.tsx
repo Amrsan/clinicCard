@@ -12,7 +12,7 @@ const ClinicsSection = () => {
       const { data, error } = await supabase
         .from("service_providers")
         .select(
-          "id, name, name_ar, photo_url, package, avg_rating, top_doctor, provider_locations(*, areas(*)), categories(*)",
+          "id, name, name_ar, description, description_ar, photo_url, package, avg_rating, top_doctor, provider_locations(*, areas(*)), categories(*)",
         );
       console.log(data);
       if (error || !data) {
