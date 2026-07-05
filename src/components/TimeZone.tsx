@@ -1,6 +1,7 @@
 import { supabase } from "@/supabaseClient"; // Use named import to match your client file
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { fallbackProviders } from "../lib/fallbackData";
 
 interface OpeningHour {
   id: number;
@@ -37,9 +38,12 @@ const TimeZone = () => {
           .eq("id", id)
           .maybeSingle();
 
-        if (error) {
-          console.error("Supabase error:", error);
-        } else if (data) {
+        if (error || !data || !data.provider_locations || data.provider_locations.length === 0) {
+          if (error) console.error("Supabase error:", error);
+          const found = fallbackProviders.find(p => String(p.id) === String(id));
+          const hours = found?.provider_locations_opening_hours || [];
+          setOpeningHours(hours as any);
+        } else {
           // Flatten the nested opening hours from all locations
           const hours =
             data.provider_locations?.flatMap(
@@ -49,6 +53,9 @@ const TimeZone = () => {
         }
       } catch (err) {
         console.error("Fetch error:", err);
+        const found = fallbackProviders.find(p => String(p.id) === String(id));
+        const hours = found?.provider_locations_opening_hours || [];
+        setOpeningHours(hours as any);
       } finally {
         setLoading(false);
       }

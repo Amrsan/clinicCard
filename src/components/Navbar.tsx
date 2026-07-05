@@ -38,9 +38,18 @@ const Navbar = () => {
             {navLinks.map((link) => {
               const isActive = location.pathname === link.href;
               return (
-                <a
+                <Link
                   key={link.name}
-                  href={link.href}
+                  to={link.href}
+                  onClick={(e) => {
+                    if (link.href.startsWith("#")) {
+                      e.preventDefault();
+                      const elementId = link.href.substring(1);
+                      document
+                        .getElementById(elementId)
+                        ?.scrollIntoView({ behavior: "smooth" });
+                    }
+                  }}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                     isActive
                       ? "bg-primary text-primary-foreground"
@@ -48,7 +57,7 @@ const Navbar = () => {
                   }`}
                 >
                   {link.name}
-                </a>
+                </Link>
               );
             })}
           </div>
@@ -90,18 +99,27 @@ const Navbar = () => {
               {navLinks.map((link) => {
                 const isActive = location.pathname === link.href;
                 return (
-                  <a
+                  <Link
                     key={link.name}
-                    href={link.href}
+                    to={link.href}
                     className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                       isActive
                         ? "bg-primary text-primary-foreground"
                         : "text-foreground hover:bg-muted"
                     }`}
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={(e) => {
+                      if (link.href.startsWith("#")) {
+                        e.preventDefault();
+                        const elementId = link.href.substring(1);
+                        document
+                          .getElementById(elementId)
+                          ?.scrollIntoView({ behavior: "smooth" });
+                      }
+                      setIsMenuOpen(false);
+                    }}
                   >
                     {link.name}
-                  </a>
+                  </Link>
                 );
               })}
               <Button variant="outline" className="mt-2 gap-2">

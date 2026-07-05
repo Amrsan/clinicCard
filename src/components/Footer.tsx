@@ -51,23 +51,35 @@ const Footer = () => {
             {/* Social Links */}
             <div className="flex gap-3 justify-end">
               <a
-                href="#"
+                href="https://www.facebook.com/clinicard.egy"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 bg-primary-foreground/10 hover:bg-primary-foreground/20 rounded-full flex items-center justify-center transition-colors"
               >
                 <Facebook className="w-5 h-5" />
               </a>
               <a
-                href="#"
+                href="https://www.instagram.com/clinicard.egy"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 bg-primary-foreground/10 hover:bg-primary-foreground/20 rounded-full flex items-center justify-center transition-colors"
               >
                 <Instagram className="w-5 h-5" />
               </a>
               <a
+                href="https://wa.me/+201095693586"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 bg-primary-foreground/10 hover:bg-primary-foreground/20 rounded-full flex items-center justify-center transition-colors"
+              >
+                <FaWhatsapp className="w-5 h-5" />
+              </a>
+              {/* <a
                 href="#"
                 className="w-10 h-10 bg-primary-foreground/10 hover:bg-primary-foreground/20 rounded-full flex items-center justify-center transition-colors"
               >
                 <Twitter className="w-5 h-5" />
-              </a>
+              </a> */}
             </div>
           </div>
 
@@ -162,13 +174,28 @@ const Footer = () => {
               تصميم و تطوير شركة <a href="#">فريش هيلث للخدمات الطبية</a>
             </p>
             <div className="flex gap-4">
-              <a href="#" className="hover:text-white/80 transition-colors">
+              <a
+                href="https://wa.me/201095693586"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white/80 transition-colors"
+              >
                 <FaWhatsapp className="w-5 h-5" />
               </a>
-              <a href="#" className="hover:text-white/80 transition-colors">
+              <a
+                href="https://www.instagram.com/clinicard.egy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white/80 transition-colors"
+              >
                 <FaInstagram className="w-5 h-5" />
               </a>
-              <a href="#" className="hover:text-white/80 transition-colors">
+              <a
+                href="https://www.facebook.com/clinicard.egy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white/80 transition-colors"
+              >
                 <FaFacebook className="w-5 h-5" />
               </a>
             </div>

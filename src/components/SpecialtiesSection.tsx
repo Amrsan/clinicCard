@@ -1,6 +1,8 @@
 import { Eye, Heart, Stethoscope, Activity, Brain, Bone } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const SpecialtiesSection = () => {
+  const navigate = useNavigate();
   const specialties = [
     {
       icon: Eye,
@@ -53,7 +55,7 @@ const SpecialtiesSection = () => {
         <div className="text-right mb-12">
           <div className="inline-block">
             <h2 className="text-2xl lg:text-3xl font-bold text-foreground mb-2">
-              التخصصات
+              بعض التخصصات
             </h2>
             <div className="h-1 w-16 bg-primary rounded-full mr-auto" />
           </div>
@@ -66,7 +68,19 @@ const SpecialtiesSection = () => {
             return (
               <div
                 key={specialty.name}
-                className="specialty-card group"
+                onClick={() => {
+                  let mappedSpecialty = specialty.name;
+                  if (specialty.name === "القلب و أوعية دموية")
+                    mappedSpecialty = "القلب";
+                  if (specialty.name === "الجلدية و التناسلية")
+                    mappedSpecialty = "الجلدية";
+                  if (specialty.name === "النفسية و العصبية")
+                    mappedSpecialty = "المخ والأعصاب";
+                  navigate("/Partners", {
+                    state: { specialty: mappedSpecialty },
+                  });
+                }}
+                className="specialty-card group cursor-pointer"
               >
                 <div
                   className={`w-14 h-14 ${specialty.bgColor} rounded-xl flex items-center justify-center mx-auto mb-4 transition-transform group-hover:scale-110`}

@@ -1,21 +1,33 @@
-import { MapPin, Star, Clock } from "lucide-react";
+import { MapPin, Star, Clock, Shield, Crown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+import { fallbackProviders, getCategoryStyle, getPackageBadgeConfig } from "../lib/fallbackData";
 
 const ClinicsSection = () => {
   const navigate = useNavigate();
-  const [providers, setProviders] = useState([]);
+  const [providers, setProviders] = useState<any[]>([]);
   useEffect(() => {
     const fetchData = async () => {
       const { data, error } = await supabase
         .from("service_providers")
-        .select("*,provider_locations(*)");
+        .select(
+          "id, name, photo_url, package, price, status, avg_rating, provider_locations(*), categories(*)",
+        );
       console.log(data);
-      if (error) {
-        console.log(error);
+      if (error || !data || data.length === 0) {
+        if (error) console.log(error);
+        const platinumProviders = fallbackProviders.filter(
+          (p: any) =>
+            p.package?.toLowerCase() === "platinum" || p.package === "بلاتيني",
+        );
+        setProviders(platinumProviders.slice(0, 4));
       } else {
-        setProviders(data);
+        const platinumProviders = data.filter(
+          (p: any) =>
+            p.package?.toLowerCase() === "platinum" || p.package === "بلاتيني",
+        );
+        setProviders(platinumProviders.slice(0, 4));
       }
     };
     fetchData();
@@ -123,26 +135,17 @@ const ClinicsSection = () => {
 
                 {/* Badges */}
                 <div className="absolute top-3 right-3 flex flex-col gap-2">
-                  {provider.package && (
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium shadow-sm border ${
-                        provider.package.toLowerCase().includes("gold") ||
-                        provider.package === "ذهبي"
-                          ? "bg-gradient-to-r from-amber-400 to-yellow-500 text-white border-amber-500"
-                          : provider.package.toLowerCase().includes("silver") ||
-                              provider.package === "فضي"
-                            ? "bg-gradient-to-r from-gray-200 to-gray-400 text-gray-800 border-gray-400"
-                            : provider.package
-                                  .toLowerCase()
-                                  .includes("platinum") ||
-                                provider.package === "بلاتيني"
-                              ? "bg-gradient-to-r from-slate-100 to-slate-300 text-slate-800 border-slate-400"
-                              : "bg-primary text-primary-foreground border-primary"
-                      }`}
-                    >
-                      {provider.package}
-                    </span>
-                  )}
+                  {provider.package && (() => {
+                    const config = getPackageBadgeConfig(provider.package);
+                    return (
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-bold shadow-md border flex items-center gap-1 backdrop-blur-sm transition-transform duration-300 group-hover:scale-105 ${config.className}`}>
+                        {config.iconName === 'crown' && <Crown className="w-3 h-3 text-yellow-200 fill-yellow-200" />}
+                        {config.iconName === 'shield' && <Shield className="w-3 h-3 text-slate-300 fill-slate-300/20" />}
+                        {config.iconName === 'star' && <Star className="w-3 h-3 text-slate-600 fill-slate-600" />}
+                        <span>{config.label}</span>
+                      </span>
+                    );
+                  })()}
                   {provider.price && (
                     <span className="bg-accent text-accent-foreground text-xs px-2 py-0.5 rounded-full">
                       {provider.price}
@@ -175,6 +178,11 @@ const ClinicsSection = () => {
 
               {/* Content */}
               <div className="p-4">
+                {provider.categories && (
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border mb-2 uppercase tracking-wide ${getCategoryStyle(provider.categories.name_ar || provider.categories.name)}`}>
+                    {provider.categories.name_ar || provider.categories.name}
+                  </span>
+                )}
                 <h3 className="font-bold text-foreground text-lg mb-2 line-clamp-1">
                   {provider.name}
                 </h3>

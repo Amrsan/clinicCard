@@ -13,6 +13,7 @@ import { supabase } from "../supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import TimeZone from "@/components/TimeZone";
+import { fallbackProviders } from "../lib/fallbackData";
 
 interface ProviderLocation {
   id: string;
@@ -56,17 +57,29 @@ const ProviderDetails = () => {
         setLoading(true);
         const { data, error } = await supabase
           .from("service_providers")
-          .select("*,provider_locations(*)")
+          .select("id, name, photo_url, package, price, status, avg_rating, description, provider_locations(*)")
           .eq("id", id)
           .single();
 
-        if (error) {
-          console.error("Error fetching provider:", error);
+        if (error || !data) {
+          if (error) console.error("Error fetching provider:", error);
+          const found = fallbackProviders.find(p => String(p.id) === String(id));
+          if (found) {
+            setProvider(found as any);
+          } else {
+            setProvider(null);
+          }
         } else {
-          setProvider(data);
+          setProvider(data as any);
         }
       } catch (err) {
         console.error("Unexpected error:", err);
+        const found = fallbackProviders.find(p => String(p.id) === String(id));
+        if (found) {
+          setProvider(found as any);
+        } else {
+          setProvider(null);
+        }
       } finally {
         setLoading(false);
       }
