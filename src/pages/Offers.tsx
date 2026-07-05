@@ -3,7 +3,7 @@ import { Check, MapPin, Star, Clock, Shield, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
-import { fallbackProviders, getCategoryStyle, getPackageBadgeConfig } from "../lib/fallbackData";
+import { getCategoryStyle, getPackageBadgeConfig, isProviderComplete } from "../lib/fallbackData";
 
 const PackagesSection = () => {
   const navigate = useNavigate();
@@ -17,12 +17,15 @@ const PackagesSection = () => {
         setLoading(true);
         const { data, error } = await supabase
           .from("service_providers")
-          .select("id, name, name_ar, photo_url, package, price, status, avg_rating, provider_locations(*), categories(*)");
-        if (error || !data || data.length === 0) {
+          .select("id, name, name_ar, photo_url, package, avg_rating, provider_locations(*, areas(*)), categories(*)");
+        
+        const completeProviders = data ? data.filter(isProviderComplete) : [];
+
+        if (error || !data) {
           if (error) console.error("Error fetching providers:", error);
-          setProviders(fallbackProviders);
+          setProviders([]);
         } else {
-          setProviders(data);
+          setProviders(completeProviders);
         }
       } catch (err) {
         console.error(err);
@@ -239,24 +242,29 @@ const PackagesSection = () => {
                           </span>
                         );
                       })()}
-                      {provider.price && (
-                        <span className="bg-accent text-accent-foreground text-xs px-2 py-0.5 rounded-full">
-                          {provider.price}
-                        </span>
-                      )}
+                      {(() => {
+                        const activeLoc = provider.provider_locations?.find((loc: any) => loc.is_active !== false);
+                        const fee = activeLoc?.booking_fee;
+                        if (fee === undefined || fee === null) return null;
+                        return (
+                          <span className="bg-accent text-accent-foreground text-xs px-2 py-0.5 rounded-full font-bold">
+                            كشف: {fee} ج.م
+                          </span>
+                        );
+                      })()}
                     </div>
 
                     {/* Status */}
                     <div className="absolute bottom-3 right-3">
                       <span
                         className={
-                          provider.status === "open"
+                          (provider.status || "open") === "open"
                             ? "status-open"
                             : "status-closed"
                         }
                       >
                         <Clock className="w-3 h-3 inline ml-1" />
-                        {provider.status === "open"
+                        {(provider.status || "open") === "open"
                           ? "مفتوح الآن"
                           : "مغلق الان"}
                       </span>
@@ -283,9 +291,19 @@ const PackagesSection = () => {
                     </h3>
                     <p className="flex items-start gap-2 text-sm text-muted-foreground line-clamp-2">
                       <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
-                      {provider.provider_locations
-                        ?.map((loc: any) => loc.address_line)
-                        .join(", ") || "لا يوجد عنوان"}
+                      {(() => {
+                        const activeLocs = (provider.provider_locations || []).filter(
+                          (loc: any) => loc.is_active !== false
+                        );
+                        if (activeLocs.length === 0) return "لا يوجد عنوان";
+                        return activeLocs
+                          .map((loc: any) => {
+                            const areaName = loc.areas?.name_ar || loc.areas?.name_en || "";
+                            const streetAddress = loc.address_line_ar || loc.address_line || "";
+                            return areaName ? `${areaName} - ${streetAddress}` : streetAddress;
+                          })
+                          .join("، ");
+                      })()}
                     </p>
                   </div>
                 </div>

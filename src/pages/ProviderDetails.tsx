@@ -13,7 +13,7 @@ import { supabase } from "../supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import TimeZone from "@/components/TimeZone";
-import { fallbackProviders } from "../lib/fallbackData";
+import { isProviderComplete } from "../lib/fallbackData";
 
 interface ProviderLocation {
   id: string;
@@ -32,14 +32,17 @@ interface ProviderLocationOpeningHour {
 interface Provider {
   id: string;
   name: string;
+  name_ar?: string;
   photo_url: string;
   package: string;
   price: string;
   status: string;
   avg_rating: number;
   description?: string;
+  description_ar?: string;
   provider_locations: ProviderLocation[];
   provider_locations_opening_hours: ProviderLocationOpeningHour[];
+  categories?: any;
 }
 
 const ProviderDetails = () => {
@@ -57,29 +60,21 @@ const ProviderDetails = () => {
         setLoading(true);
         const { data, error } = await supabase
           .from("service_providers")
-          .select("id, name, photo_url, package, price, status, avg_rating, description, provider_locations(*)")
+          .select("id, name, name_ar, photo_url, package, avg_rating, description, description_ar, phone, social_media, provider_locations(*, areas(*)), categories(*)")
           .eq("id", id)
           .single();
 
-        if (error || !data) {
+        const isComplete = data ? isProviderComplete(data) : false;
+
+        if (error || !data || !isComplete) {
           if (error) console.error("Error fetching provider:", error);
-          const found = fallbackProviders.find(p => String(p.id) === String(id));
-          if (found) {
-            setProvider(found as any);
-          } else {
-            setProvider(null);
-          }
+          setProvider(null);
         } else {
           setProvider(data as any);
         }
       } catch (err) {
         console.error("Unexpected error:", err);
-        const found = fallbackProviders.find(p => String(p.id) === String(id));
-        if (found) {
-          setProvider(found as any);
-        } else {
-          setProvider(null);
-        }
+        setProvider(null);
       } finally {
         setLoading(false);
       }
@@ -159,7 +154,7 @@ const ProviderDetails = () => {
                   provider.photo_url ||
                   "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800"
                 }
-                alt={provider.name}
+                alt={provider.name_ar || provider.name}
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black/60 via-black/20 to-transparent"></div>
@@ -173,11 +168,16 @@ const ProviderDetails = () => {
                     <span className="font-bold">{provider.package}</span>
                   </span>
                 )}
-                {provider.price && (
-                  <span className="bg-accent text-accent-foreground px-3 py-1 rounded-full text-sm shadow-md font-bold">
-                    {provider.price}
-                  </span>
-                )}
+                {(() => {
+                  const activeLoc = provider.provider_locations?.find((loc: any) => loc.is_active !== false);
+                  const fee = activeLoc?.booking_fee;
+                  if (fee === undefined || fee === null) return null;
+                  return (
+                    <span className="bg-accent text-accent-foreground px-3 py-1 rounded-full text-sm shadow-md font-bold">
+                      كشف: {fee} ج.م
+                    </span>
+                  );
+                })()}
               </div>
             </div>
 
@@ -185,7 +185,7 @@ const ProviderDetails = () => {
             <div className="md:col-span-3 p-8 lg:p-12 relative flex flex-col justify-center">
               <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                 <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground">
-                  {provider.name}
+                  {provider.name_ar || provider.name}
                 </h1>
 
                 <div className="flex items-center gap-2 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-3 py-1.5 rounded-full">
@@ -204,9 +204,19 @@ const ProviderDetails = () => {
                   <div>
                     <h3 className="font-bold text-foreground mb-1">الموقع</h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      {provider.provider_locations
-                        ?.map((loc) => loc.address_line)
-                        .join(", ") || "العنوان غير متوفر"}
+                      {(() => {
+                        const activeLocs = (provider.provider_locations || []).filter(
+                          (loc: any) => loc.is_active !== false
+                        );
+                        if (activeLocs.length === 0) return "العنوان غير متوفر";
+                        return activeLocs
+                          .map((loc: any) => {
+                            const areaName = loc.areas?.name_ar || loc.areas?.name_en || "";
+                            const streetAddress = loc.address_line_ar || loc.address_line || "";
+                            return areaName ? `${areaName} - ${streetAddress}` : streetAddress;
+                          })
+                          .join("، ");
+                      })()}
                     </p>
                   </div>
                 </div>
@@ -220,19 +230,19 @@ const ProviderDetails = () => {
                       حالة العمل
                     </h3>
                     <p
-                      className={`font-semibold flex items-center gap-2 ${provider.status === "open" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
+                      className={`font-semibold flex items-center gap-2 ${(provider.status || "open") === "open" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
                     >
                       <span className="relative flex h-3 w-3">
-                        {provider.status === "open" && (
+                        {(provider.status || "open") === "open" && (
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                         )}
                         <span
-                          className={`relative inline-flex rounded-full h-3 w-3 ${provider.status === "open" ? "bg-emerald-500" : "bg-rose-500"}`}
+                          className={`relative inline-flex rounded-full h-3 w-3 ${(provider.status || "open") === "open" ? "bg-emerald-500" : "bg-rose-500"}`}
                         ></span>
                       </span>
-                      {provider.status === "open" ? "مفتوح الآن" : "مغلق الان"}
+                      {(provider.status || "open") === "open" ? "مفتوح الآن" : "مغلق الان"}
                       <Clock className="w-3 h-3 inline ml-1" />
-                      {provider.status === "open" ? "مفتوح الآن" : "مغلق الان"}
+                      {(provider.status || "open") === "open" ? "مفتوح الآن" : "مغلق الان"}
                       {provider?.provider_locations_opening_hours?.map(
                         (schedule) => (
                           <p key={schedule.id}>
@@ -247,30 +257,51 @@ const ProviderDetails = () => {
                   </div>
                 </div>
 
-                {provider.description && (
+                {(provider.description_ar || provider.description) && (
                   <div className="pt-4 border-t border-border mt-4">
                     <h3 className="font-bold text-foreground mb-2">
                       عن الطبيب / العيادة
                     </h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      {provider.description}
+                      {provider.description_ar || provider.description}
                     </p>
                   </div>
                 )}
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 mt-auto pt-6">
-                <Button className="flex-1 h-14 text-lg font-bold rounded-xl bg-primary hover:bg-primary/90">
-                  <Phone className="w-5 h-5 ml-2 rtl-flip" />
-                  احجز موعدك الآن
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-[0.5] h-14 text-lg font-bold rounded-xl border-2"
-                >
-                  <Mail className="w-5 h-5 ml-2" />
-                  تواصل معنا
-                </Button>
+                {provider.phone ? (
+                  <Button 
+                    className="flex-1 h-14 text-lg font-bold rounded-xl bg-primary hover:bg-primary/90"
+                    onClick={() => window.open(`tel:${provider.phone}`, "_self")}
+                  >
+                    <Phone className="w-5 h-5 ml-2 rtl-flip" />
+                    احجز موعدك الآن
+                  </Button>
+                ) : (
+                  <Button className="flex-1 h-14 text-lg font-bold rounded-xl bg-primary hover:bg-primary/90">
+                    <Phone className="w-5 h-5 ml-2 rtl-flip" />
+                    احجز موعدك الآن
+                  </Button>
+                )}
+                {provider.social_media ? (
+                  <Button
+                    variant="outline"
+                    className="flex-[0.5] h-14 text-lg font-bold rounded-xl border-2"
+                    onClick={() => window.open(provider.social_media, "_blank")}
+                  >
+                    <Mail className="w-5 h-5 ml-2" />
+                    تواصل معنا
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="flex-[0.5] h-14 text-lg font-bold rounded-xl border-2"
+                  >
+                    <Mail className="w-5 h-5 ml-2" />
+                    تواصل معنا
+                  </Button>
+                )}
               </div>
             </div>
           </div>

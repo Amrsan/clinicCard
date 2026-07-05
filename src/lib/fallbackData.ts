@@ -264,4 +264,47 @@ export const getPackageBadgeConfig = (pkgName: string): PackageBadgeConfig => {
   };
 };
 
+export const isProviderComplete = (p: any): boolean => {
+  if (!p) return false;
+  
+  // Basic validation: name, photo, package, and category are required
+  const hasName = (typeof p.name_ar === 'string' && p.name_ar.trim().length > 0) ||
+                  (typeof p.name === 'string' && p.name.trim().length > 0);
+  
+  const hasPhoto = typeof p.photo_url === 'string' && p.photo_url.trim().length > 0;
+  
+  const hasPackage = typeof p.package === 'string' && p.package.trim().length > 0;
+  
+  // Category check: either as an object from join categories(*), or as a string if it's category_id
+  const hasCategory = p.categories && (
+    (typeof p.categories.name_ar === 'string' && p.categories.name_ar.trim().length > 0) ||
+    (typeof p.categories.name === 'string' && p.categories.name.trim().length > 0)
+  );
+
+  // Description check: name/photo/package/category are essential, but description makes the card look complete.
+  const hasDescription = (typeof p.description_ar === 'string' && p.description_ar.trim().length > 0) ||
+                         (typeof p.description === 'string' && p.description.trim().length > 0);
+
+  // Location check: if provider_locations is loaded, it must have at least one valid location with is_active !== false.
+  // If provider_locations is undefined, we don't block it (in case it wasn't requested).
+  const hasLocations = p.provider_locations === undefined || 
+                       (Array.isArray(p.provider_locations) && 
+                        p.provider_locations.filter((loc: any) => loc.is_active !== false).length > 0);
+
+  return !!(hasName && hasPhoto && hasPackage && hasCategory && hasDescription && hasLocations);
+};
+
+export const getArabicDayName = (dayNum: number): string => {
+  const days: Record<number, string> = {
+    1: "الإثنين",
+    2: "الثلاثاء",
+    3: "الأربعاء",
+    4: "الخميس",
+    5: "الجمعة",
+    6: "السبت",
+    7: "الأحد",
+  };
+  return days[dayNum] || `اليوم ${dayNum}`;
+};
+
 

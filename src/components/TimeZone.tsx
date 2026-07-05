@@ -1,16 +1,19 @@
 import { supabase } from "@/supabaseClient"; // Use named import to match your client file
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { fallbackProviders } from "../lib/fallbackData";
+
+import { getArabicDayName } from "../lib/fallbackData";
 
 interface OpeningHour {
   id: number;
   from_time: string;
   to_time: string;
   day_of_week: number;
+  is_closed?: boolean;
 }
 
 interface ProviderLocation {
+  is_active?: boolean;
   provider_location_opening_hours: OpeningHour[];
 }
 
@@ -31,6 +34,7 @@ const TimeZone = () => {
             `
             id,
             provider_locations (
+              is_active,
               provider_location_opening_hours (*)
             )
           `,
@@ -40,22 +44,20 @@ const TimeZone = () => {
 
         if (error || !data || !data.provider_locations || data.provider_locations.length === 0) {
           if (error) console.error("Supabase error:", error);
-          const found = fallbackProviders.find(p => String(p.id) === String(id));
-          const hours = found?.provider_locations_opening_hours || [];
-          setOpeningHours(hours as any);
+          setOpeningHours([]);
         } else {
-          // Flatten the nested opening hours from all locations
-          const hours =
-            data.provider_locations?.flatMap(
-              (loc: any) => loc.provider_location_opening_hours || [],
-            ) || [];
+          // Filter out inactive locations and flatten the nested opening hours
+          const activeLocs = data.provider_locations.filter((loc: any) => loc.is_active !== false);
+          const hours: OpeningHour[] = activeLocs.flatMap(
+            (loc: any) => loc.provider_location_opening_hours || [],
+          );
+          // Sort opening hours by day of week asc
+          hours.sort((a, b) => a.day_of_week - b.day_of_week);
           setOpeningHours(hours);
         }
       } catch (err) {
         console.error("Fetch error:", err);
-        const found = fallbackProviders.find(p => String(p.id) === String(id));
-        const hours = found?.provider_locations_opening_hours || [];
-        setOpeningHours(hours as any);
+        setOpeningHours([]);
       } finally {
         setLoading(false);
       }
@@ -83,11 +85,15 @@ const TimeZone = () => {
             className="flex justify-between items-center text-sm border-b border-border/50 pb-2"
           >
             <span className="text-muted-foreground">
-              اليوم {hour.day_of_week}
+              {getArabicDayName(hour.day_of_week)}
             </span>
-            <span className="font-medium text-foreground dir-ltr">
-              من {hour.from_time} - الى {hour.to_time}
-            </span>
+            {hour.is_closed ? (
+              <span className="font-bold text-rose-500">مغلق</span>
+            ) : (
+              <span className="font-medium text-foreground dir-ltr">
+                من {hour.from_time ? hour.from_time.slice(0, 5) : ""} - الى {hour.to_time ? hour.to_time.slice(0, 5) : ""}
+              </span>
+            )}
           </div>
         ))}
       </div>

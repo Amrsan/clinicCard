@@ -2,7 +2,7 @@ import { MapPin, Star, Clock, Shield, Crown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
-import { fallbackProviders, getCategoryStyle, getPackageBadgeConfig } from "../lib/fallbackData";
+import { getCategoryStyle, getPackageBadgeConfig, isProviderComplete } from "../lib/fallbackData";
 
 const ClinicsSection = () => {
   const navigate = useNavigate();
@@ -12,22 +12,16 @@ const ClinicsSection = () => {
       const { data, error } = await supabase
         .from("service_providers")
         .select(
-          "id, name, photo_url, package, price, status, avg_rating, provider_locations(*), categories(*)",
+          "id, name, name_ar, photo_url, package, avg_rating, top_doctor, provider_locations(*, areas(*)), categories(*)",
         );
       console.log(data);
-      if (error || !data || data.length === 0) {
+      if (error || !data) {
         if (error) console.log(error);
-        const platinumProviders = fallbackProviders.filter(
-          (p: any) =>
-            p.package?.toLowerCase() === "platinum" || p.package === "بلاتيني",
-        );
-        setProviders(platinumProviders.slice(0, 4));
+        setProviders([]);
       } else {
-        const platinumProviders = data.filter(
-          (p: any) =>
-            p.package?.toLowerCase() === "platinum" || p.package === "بلاتيني",
-        );
-        setProviders(platinumProviders.slice(0, 4));
+        const completeProviders = data.filter(isProviderComplete);
+        const topDoctors = completeProviders.filter((p: any) => p.top_doctor === true);
+        setProviders(topDoctors.slice(0, 4));
       }
     };
     fetchData();
@@ -128,7 +122,7 @@ const ClinicsSection = () => {
               <div className="relative h-48 overflow-hidden">
                 <img
                   src={provider.photo_url}
-                  alt={provider.name}
+                  alt={provider.name_ar || provider.name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent" />
@@ -146,24 +140,29 @@ const ClinicsSection = () => {
                       </span>
                     );
                   })()}
-                  {provider.price && (
-                    <span className="bg-accent text-accent-foreground text-xs px-2 py-0.5 rounded-full">
-                      {provider.price}
-                    </span>
-                  )}
+                  {(() => {
+                    const activeLoc = provider.provider_locations?.find((loc: any) => loc.is_active !== false);
+                    const fee = activeLoc?.booking_fee;
+                    if (fee === undefined || fee === null) return null;
+                    return (
+                      <span className="bg-accent text-accent-foreground text-xs px-2 py-0.5 rounded-full font-bold">
+                        كشف: {fee} ج.م
+                      </span>
+                    );
+                  })()}
                 </div>
 
                 {/* Status */}
                 <div className="absolute bottom-3 right-3">
                   <span
                     className={
-                      provider.status === "open"
+                      (provider.status || "open") === "open"
                         ? "status-open"
                         : "status-closed"
                     }
                   >
                     <Clock className="w-3 h-3 inline ml-1" />
-                    {provider.status === "open" ? "مفتوح الآن" : "مغلق الان"}
+                    {(provider.status || "open") === "open" ? "مفتوح الآن" : "مغلق الان"}
                   </span>
                 </div>
 
@@ -184,13 +183,23 @@ const ClinicsSection = () => {
                   </span>
                 )}
                 <h3 className="font-bold text-foreground text-lg mb-2 line-clamp-1">
-                  {provider.name}
+                  {provider.name_ar || provider.name}
                 </h3>
                 <p className="flex items-start gap-2 text-sm text-muted-foreground line-clamp-2">
                   <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
-                  {provider.provider_locations
-                    ?.map((prov) => prov.address_line)
-                    .join(", ") || "لا يوجد"}
+                  {(() => {
+                    const activeLocs = (provider.provider_locations || []).filter(
+                      (loc: any) => loc.is_active !== false
+                    );
+                    if (activeLocs.length === 0) return "لا يوجد عنوان";
+                    return activeLocs
+                      .map((loc: any) => {
+                        const areaName = loc.areas?.name_ar || loc.areas?.name_en || "";
+                        const streetAddress = loc.address_line_ar || loc.address_line || "";
+                        return areaName ? `${areaName} - ${streetAddress}` : streetAddress;
+                      })
+                      .join("، ");
+                  })()}
                 </p>
               </div>
             </div>
